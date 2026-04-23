@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from './use-auth';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "./use-auth";
 
-const LOCAL_STORAGE_KEY = 'ecommerce_wishlist';
+const LOCAL_STORAGE_KEY = "ecommerce_wishlist";
+
+const isSupabaseConfigured = () => {
+  return !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+};
 
 export interface WishlistItem {
   id: string;
@@ -20,13 +27,13 @@ export function useWishlist() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loadWishlist = useCallback(async () => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && isSupabaseConfigured()) {
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from('wishlist_items')
-          .select('*')
-          .eq('user_id', user.id);
+          .from("wishlist_items")
+          .select("*")
+          .eq("user_id", user.id);
 
         if (!error && data) {
           const wishlistItems = data.map((item: any) => ({
@@ -39,7 +46,7 @@ export function useWishlist() {
           setItems(wishlistItems);
         }
       } catch (error) {
-        console.error('Error loading wishlist:', error);
+        console.error("Error loading wishlist:", error);
       } finally {
         setIsLoading(false);
       }
@@ -49,7 +56,7 @@ export function useWishlist() {
         try {
           setItems(JSON.parse(storedWishlist));
         } catch (error) {
-          console.error('Error parsing wishlist:', error);
+          console.error("Error parsing wishlist:", error);
         }
       }
     }
@@ -69,14 +76,14 @@ export function useWishlist() {
       productId: string,
       productName: string,
       productImage: string,
-      productPriceCents: number
+      productPriceCents: number,
     ) => {
       const isAlreadyAdded = items.some((item) => item.productId === productId);
       if (isAlreadyAdded) return;
 
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && isSupabaseConfigured()) {
         try {
-          await supabase.from('wishlist_items').insert({
+          await supabase.from("wishlist_items").insert({
             user_id: user.id,
             product_id: productId,
             product_name: productName,
@@ -85,7 +92,7 @@ export function useWishlist() {
           });
           await loadWishlist();
         } catch (error) {
-          console.error('Error adding to wishlist:', error);
+          console.error("Error adding to wishlist:", error);
         }
       } else {
         const newItem: WishlistItem = {
@@ -98,28 +105,30 @@ export function useWishlist() {
         saveLocalWishlist([...items, newItem]);
       }
     },
-    [items, isAuthenticated, user, loadWishlist]
+    [items, isAuthenticated, user, loadWishlist],
   );
 
   const removeItem = useCallback(
     async (productId: string) => {
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && isSupabaseConfigured()) {
         try {
           await supabase
-            .from('wishlist_items')
+            .from("wishlist_items")
             .delete()
-            .eq('user_id', user.id)
-            .eq('product_id', productId);
+            .eq("user_id", user.id)
+            .eq("product_id", productId);
           await loadWishlist();
         } catch (error) {
-          console.error('Error removing from wishlist:', error);
+          console.error("Error removing from wishlist:", error);
         }
       } else {
-        const updatedItems = items.filter((item) => item.productId !== productId);
+        const updatedItems = items.filter(
+          (item) => item.productId !== productId,
+        );
         saveLocalWishlist(updatedItems);
       }
     },
-    [items, isAuthenticated, user, loadWishlist]
+    [items, isAuthenticated, user, loadWishlist],
   );
 
   const isInWishlist = (productId: string) => {

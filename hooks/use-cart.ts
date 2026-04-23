@@ -1,11 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import type { CartItem, Cart } from '@/types/cart';
-import { useAuth } from './use-auth';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase/client";
+import type { CartItem, Cart } from "@/types/cart";
+import { useAuth } from "./use-auth";
 
-const LOCAL_STORAGE_KEY = 'ecommerce_cart';
+const LOCAL_STORAGE_KEY = "ecommerce_cart";
+
+const isSupabaseConfigured = () => {
+  return !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+};
 
 export function useCart() {
   const { user, isAuthenticated } = useAuth();
@@ -19,20 +26,20 @@ export function useCart() {
   const calculateTotal = (items: CartItem[]) => {
     const totalCents = items.reduce(
       (sum, item) => sum + item.productPriceCents * item.quantity,
-      0
+      0,
     );
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
     return { totalCents, itemCount };
   };
 
   const loadCart = useCallback(async () => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && isSupabaseConfigured()) {
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from('cart_items')
-          .select('*')
-          .eq('user_id', user.id);
+          .from("cart_items")
+          .select("*")
+          .eq("user_id", user.id);
 
         if (!error && data) {
           const items = data.map((item: any) => ({
@@ -47,7 +54,7 @@ export function useCart() {
           setCart({ items, totalCents, itemCount });
         }
       } catch (error) {
-        console.error('Error loading cart:', error);
+        console.error("Error loading cart:", error);
       } finally {
         setIsLoading(false);
       }
@@ -59,7 +66,7 @@ export function useCart() {
           const { totalCents, itemCount } = calculateTotal(items);
           setCart({ items, totalCents, itemCount });
         } catch (error) {
-          console.error('Error parsing cart:', error);
+          console.error("Error parsing cart:", error);
         }
       }
     }
@@ -81,24 +88,24 @@ export function useCart() {
       productName: string,
       productImage: string,
       productPriceCents: number,
-      quantity: number = 1
+      quantity: number = 1,
     ) => {
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && isSupabaseConfigured()) {
         try {
           const { data: existing } = await supabase
-            .from('cart_items')
-            .select('id, quantity')
-            .eq('user_id', user.id)
-            .eq('product_id', productId)
+            .from("cart_items")
+            .select("id, quantity")
+            .eq("user_id", user.id)
+            .eq("product_id", productId)
             .maybeSingle();
 
           if (existing) {
             await supabase
-              .from('cart_items')
+              .from("cart_items")
               .update({ quantity: existing.quantity + quantity })
-              .eq('id', existing.id);
+              .eq("id", existing.id);
           } else {
-            await supabase.from('cart_items').insert({
+            await supabase.from("cart_items").insert({
               user_id: user.id,
               product_id: productId,
               product_name: productName,
@@ -109,16 +116,18 @@ export function useCart() {
           }
           await loadCart();
         } catch (error) {
-          console.error('Error adding to cart:', error);
+          console.error("Error adding to cart:", error);
         }
       } else {
-        const existing = cart.items.find((item) => item.productId === productId);
+        const existing = cart.items.find(
+          (item) => item.productId === productId,
+        );
         let updatedItems: CartItem[];
         if (existing) {
           updatedItems = cart.items.map((item) =>
             item.productId === productId
               ? { ...item, quantity: item.quantity + quantity }
-              : item
+              : item,
           );
         } else {
           updatedItems = [
@@ -136,30 +145,30 @@ export function useCart() {
         saveLocalCart(updatedItems);
       }
     },
-    [cart.items, isAuthenticated, user, loadCart]
+    [cart.items, isAuthenticated, user, loadCart],
   );
 
   const removeItem = useCallback(
     async (productId: string) => {
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && isSupabaseConfigured()) {
         try {
           await supabase
-            .from('cart_items')
+            .from("cart_items")
             .delete()
-            .eq('user_id', user.id)
-            .eq('product_id', productId);
+            .eq("user_id", user.id)
+            .eq("product_id", productId);
           await loadCart();
         } catch (error) {
-          console.error('Error removing from cart:', error);
+          console.error("Error removing from cart:", error);
         }
       } else {
         const updatedItems = cart.items.filter(
-          (item) => item.productId !== productId
+          (item) => item.productId !== productId,
         );
         saveLocalCart(updatedItems);
       }
     },
-    [cart.items, isAuthenticated, user, loadCart]
+    [cart.items, isAuthenticated, user, loadCart],
   );
 
   const updateQuantity = useCallback(
@@ -169,37 +178,34 @@ export function useCart() {
         return;
       }
 
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && isSupabaseConfigured()) {
         try {
           await supabase
-            .from('cart_items')
+            .from("cart_items")
             .update({ quantity })
-            .eq('user_id', user.id)
-            .eq('product_id', productId);
+            .eq("user_id", user.id)
+            .eq("product_id", productId);
           await loadCart();
         } catch (error) {
-          console.error('Error updating quantity:', error);
+          console.error("Error updating quantity:", error);
         }
       } else {
         const updatedItems = cart.items.map((item) =>
-          item.productId === productId ? { ...item, quantity } : item
+          item.productId === productId ? { ...item, quantity } : item,
         );
         saveLocalCart(updatedItems);
       }
     },
-    [cart.items, isAuthenticated, user, loadCart, removeItem]
+    [cart.items, isAuthenticated, user, loadCart, removeItem],
   );
 
   const clearCart = useCallback(async () => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && isSupabaseConfigured()) {
       try {
-        await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', user.id);
+        await supabase.from("cart_items").delete().eq("user_id", user.id);
         setCart({ items: [], totalCents: 0, itemCount: 0 });
       } catch (error) {
-        console.error('Error clearing cart:', error);
+        console.error("Error clearing cart:", error);
       }
     } else {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
