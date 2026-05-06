@@ -12,26 +12,27 @@ interface PageProps {
 }
 
 async function getProduct(id: string): Promise<Product | null> {
-  console.log('[EDGE] Product fetch started at:', new Date().toISOString());
-  const startTime = Date.now();
-
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/products`, {
+    const res = await fetch(`https://dummyjson.com/products/${id}`, {
       cache: 'no-store',
     });
 
     if (!res.ok) return null;
 
-    const products = await res.json();
-    const product = products.find((p: Product) => String(p.id) === id);
+    const p = await res.json();
 
-    const endTime = Date.now();
-    console.log(`[EDGE] Product fetch completed in ${endTime - startTime}ms`);
-
-    return product || null;
+    return {
+      id: p.id,
+      name: p.title,
+      title: p.title,
+      description: p.description ?? '',
+      priceCents: Math.round((p.price ?? 0) * 100),
+      image: p.thumbnail ?? p.image ?? '',
+      category: p.category ?? 'General',
+      subCategory: p.brand ?? '',
+      keywords: p.tags ?? [],
+      rating: p.rating ? { stars: p.rating, count: p.stock ?? 0 } : undefined,
+    };
   } catch (error) {
     console.error('[EDGE] Error fetching product:', error);
     return null;
