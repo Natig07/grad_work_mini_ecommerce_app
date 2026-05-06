@@ -13,23 +13,34 @@ interface PageProps {
 }
 
 async function getProducts(): Promise<{ products: Product[]; fetchDuration: number }> {
-  const startTime = Date.now();
+  const startTime = performance.now();
 
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/products`, {
-    cache: 'no-store',
-  });
+  const res = await fetch(
+    'https://kolzsticks.github.io/Free-Ecommerce-Products-Api/main/products.json',
+    { cache: 'no-store' }
+  );
 
   if (!res.ok) {
     throw new Error('Failed to fetch products');
   }
 
-  const data = await res.json();
-  const fetchDuration = Date.now() - startTime;
+  const externalProducts = await res.json();
+  const products: Product[] = externalProducts.slice(0, 50).map((product: any) => ({
+    id: product.id,
+    name: product.name,
+    title: product.name,
+    description: product.description,
+    priceCents: product.priceCents,
+    image: product.image,
+    category: product.category,
+    subCategory: product.subCategory,
+    keywords: product.keywords,
+    rating: product.rating,
+  }));
 
-  return { products: data, fetchDuration };
+  const fetchDuration = performance.now() - startTime;
+
+  return { products, fetchDuration };
 }
 
 export default async function EdgeProductsPage({ searchParams }: PageProps) {
