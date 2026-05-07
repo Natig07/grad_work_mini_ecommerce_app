@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
-import type { Product } from '@/types/product';
+import { NextResponse } from "next/server";
+import type { Product } from "@/types/product";
 
 let cachedProducts: Product[] | null = null;
 
 async function fetchExternalProducts(): Promise<Product[]> {
   try {
     const res = await fetch(
-      'https://kolzsticks.github.io/Free-Ecommerce-Products-Api/main/products.json',
-      { next: { revalidate: 3600 } }
+      "https://kolzsticks.github.io/Free-Ecommerce-Products-Api/main/products.json",
+      { next: { revalidate: 3600 } },
     );
 
-    if (!res.ok) throw new Error('Failed to fetch external products');
+    if (!res.ok) throw new Error("Failed to fetch external products");
 
     const externalProducts = await res.json();
     const normalized = externalProducts.slice(0, 50).map((product: any) => ({
@@ -27,17 +27,17 @@ async function fetchExternalProducts(): Promise<Product[]> {
     }));
     return normalized;
   } catch (error) {
-    console.error('Error fetching external products:', error);
+    console.error("Error fetching external products:", error);
     return [];
   }
 }
 
 export async function GET() {
   const startTime = Date.now();
-  console.log('[API] Product fetch started at:', new Date().toISOString());
+  console.log("[API] Product fetch started at:", new Date().toISOString());
 
-  const delay = Math.floor(Math.random() * 300) + 500;
-  await new Promise((resolve) => setTimeout(resolve, delay));
+  // const delay = Math.floor(Math.random() * 300) + 500;
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   if (!cachedProducts) {
     const externalProducts = await fetchExternalProducts();
