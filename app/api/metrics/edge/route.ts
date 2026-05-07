@@ -3,14 +3,14 @@ import { NextResponse } from "next/server";
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const startTime = Date.now();
-  const url = new URL(request.url);
-  const productUrl = new URL("/api/products", url.origin);
+export async function GET() {
+  const startTime = performance.now();
 
-  const res = await fetch(productUrl.toString(), {
+  const res = await fetch("https://dummyjson.com/products?limit=50", {
     cache: "no-store",
   });
+
+  const ttfb = performance.now() - startTime;
 
   if (!res.ok) {
     return NextResponse.json(
@@ -19,12 +19,13 @@ export async function GET(request: Request) {
     );
   }
 
-  const products = await res.json();
-  const ttfb = Date.now() - startTime;
+  const json = await res.json();
+  const totalDuration = performance.now() - startTime;
 
   return NextResponse.json({
-    ttfb,
-    productCount: Array.isArray(products) ? products.length : 0,
+    ttfb: Math.round(ttfb),
+    totalDuration: Math.round(totalDuration),
+    productCount: Array.isArray(json.products) ? json.products.length : 0,
     generatedAt: new Date().toISOString(),
   });
 }
